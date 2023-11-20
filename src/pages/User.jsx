@@ -1,18 +1,25 @@
 import { FaCodepen, FaStore, FaUserFriends, FaUsers } from "react-icons/fa"
 import { useEffect, useContext } from "react"
-import { Link, useParams } from "react-router-dom"
-import Spinner from "../components/layout/assets/wait.gif"
+import { useParams, Link } from "react-router-dom"
+import Spinner from "../components/layout/Spinner"
+import RepoList from "../components/repos/RepoList"
 import GithubContext from "../context/github/GithubContext"
+import { getUserAndRepos } from "../context/github/GithubActions"
 
-function User({ match }) {
-   const { getUser, user, loading } = useContext(GithubContext)
+function User() {
+   const { user, loading, repos, dispatch } = useContext(GithubContext)
 
    const params = useParams()
 
    useEffect(() => {
-      getUser(params.login)
-      //   getUserRepos(params.login)
-   }, [getUser, params])
+      dispatch({ type: "SET_LOADING" })
+      const getUserData = async () => {
+         const userData = await getUserAndRepos(params.login)
+         dispatch({ type: "GET_USER_AND_REPOS", payload: userData })
+      }
+
+      getUserData()
+   }, [dispatch, params.login])
 
    const {
       name,
@@ -35,24 +42,36 @@ function User({ match }) {
       return <Spinner />
    }
 
+   // NOTE: check for valid url to users website
+
+   const websiteUrl = blog?.startsWith("http") ? blog : "https://" + blog
+
+   // NOTE: code here has been fixed so that stats no longer show scroll bar on
+   // mobile / small devices
+   // https://www.udemy.com/course/react-front-to-back-2022/learn/lecture/29768968#questions/16902278
+
+   // NOTE: if you are having problems with the name and login showing at the top
+   // of the image then you need the className='flex-grow-0' on the <p> tag
+   // default styling on <p> in daisyUI now has flex-grow-1
+
    return (
       <>
          <div className="w-full mx-auto lg:w-10/12">
             <div className="mb-4">
                <Link to="/" className="btn btn-ghost">
-                  Back to search
+                  Back To Search
                </Link>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-3 md:grid-cols-3 mb-8 md:gap-8">
                <div className="custom-card-image mb-6 md:mb-0">
-                  <div className="rounded-lg-shadow-xl card image-full">
+                  <div className="rounded-lg shadow-xl card image-full">
                      <figure>
-                        <img src={avatar_url} alt="Profile" />
+                        <img src={avatar_url} alt="" />
                      </figure>
                      <div className="card-body justify-end">
                         <h2 className="card-title mb-0">{name}</h2>
-                        <p>{login}</p>
+                        <p className="flex-grow-0">{login}</p>
                      </div>
                   </div>
                </div>
@@ -91,13 +110,15 @@ function User({ match }) {
                      {blog && (
                         <div className="stat">
                            <div className="stat-title text-md">Website</div>
-                           <a
-                              href={`https://${blog}`}
-                              target="_blank"
-                              rel="noreferrer"
-                           >
-                              {blog}
-                           </a>
+                           <div className="text-lg stat-value">
+                              <a
+                                 href={websiteUrl}
+                                 target="_blank"
+                                 rel="noreferrer"
+                              >
+                                 {websiteUrl}
+                              </a>
+                           </div>
                         </div>
                      )}
                      {twitter_username && (
@@ -119,13 +140,15 @@ function User({ match }) {
             </div>
 
             <div className="w-full py-5 mb-6 rounded-lg shadow-md bg-base-100 stats">
-               <div className="stat">
-                  <div className="stat-figure text-secondary">
-                     <FaUsers className="text-3xl md:text-5xl" />
-                  </div>
-                  <div className="stat-title pr-5">Followers</div>
-                  <div className="stat-value pr-5 text-3xl md:text-4xl">
-                     {followers}
+               <div className="grid grid-cols-1 md:grid-cols-3">
+                  <div className="stat">
+                     <div className="stat-figure text-secondary">
+                        <FaUsers className="text-3xl md:text-5xl" />
+                     </div>
+                     <div className="stat-title pr-5">Followers</div>
+                     <div className="stat-value pr-5 text-3xl md:text-4xl">
+                        {followers}
+                     </div>
                   </div>
 
                   <div className="stat">
@@ -160,7 +183,7 @@ function User({ match }) {
                </div>
             </div>
 
-            
+            <RepoList repos={repos} />
          </div>
       </>
    )
